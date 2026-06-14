@@ -1,0 +1,2596 @@
+Below is a practical **DevOps CI/CD cheat sheet** covering Jenkins, Maven, SonarQube, S3, Terraform, security scanning, and deployment strategies, along with **daily-use Python, SQL, Bash, PowerShell, and JavaScript code examples** that are commonly used in real projects.
+
+# 1. Jenkins Fundamentals
+
+## Create a Simple Jenkins Job
+
+### Build Step
+
+```bash
+echo "Build Started"
+python app.py
+echo "Build Completed"
+```
+
+### Parameters
+
+```text
+ENV=dev
+VERSION=1.0.0
+```
+
+---
+
+# 2. Jenkins Declarative Pipeline
+
+## Jenkinsfile
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/company/app.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh './deploy.sh'
+            }
+        }
+    }
+}
+```
+
+---
+
+# 3. Scripted Pipeline
+
+```groovy
+node {
+
+    stage('Build') {
+        sh 'mvn clean package'
+    }
+
+    stage('Test') {
+        sh 'mvn test'
+    }
+
+    stage('Deploy') {
+        sh './deploy.sh'
+    }
+}
+```
+
+---
+
+# 4. Jenkins Agents
+
+Master delegates builds to agents.
+
+```groovy
+pipeline {
+
+ agent {
+   label 'linux-agent'
+ }
+
+ stages {
+
+   stage('Build'){
+      steps{
+         sh 'mvn clean package'
+      }
+   }
+
+ }
+}
+```
+
+---
+
+# 5. Maven Build Commands
+
+### Clean Build
+
+```bash
+mvn clean install
+```
+
+### Run Tests
+
+```bash
+mvn test
+```
+
+### Skip Tests
+
+```bash
+mvn clean package -DskipTests
+```
+
+### Dependency Tree
+
+```bash
+mvn dependency:tree
+```
+
+---
+
+# 6. SonarQube Integration
+
+### Jenkins Stage
+
+```groovy
+stage('Sonar Scan') {
+
+ steps {
+
+  sh '''
+  mvn sonar:sonar \
+  -Dsonar.projectKey=myapp \
+  -Dsonar.host.url=http://sonarqube:9000 \
+  -Dsonar.login=$SONAR_TOKEN
+  '''
+ }
+}
+```
+
+---
+
+### Quality Gate
+
+```groovy
+stage('Quality Gate') {
+
+ steps {
+
+  timeout(time: 10, unit: 'MINUTES') {
+
+   waitForQualityGate abortPipeline: true
+
+  }
+ }
+}
+```
+
+---
+
+# 7. Artifact Upload to S3
+
+### Bash
+
+```bash
+aws s3 cp target/app.jar \
+s3://my-artifacts/app.jar
+```
+
+### Jenkins
+
+```groovy
+stage('Upload Artifact') {
+
+ steps {
+
+  sh '''
+  aws s3 cp target/app.jar \
+  s3://company-artifacts/
+  '''
+ }
+}
+```
+
+---
+
+# 8. Terraform Infrastructure Pipeline
+
+### Jenkinsfile
+
+```groovy
+stage('Terraform Init') {
+
+ steps {
+   sh 'terraform init'
+ }
+
+}
+
+stage('Terraform Plan') {
+
+ steps {
+   sh 'terraform plan'
+ }
+
+}
+
+stage('Terraform Apply') {
+
+ steps {
+   sh 'terraform apply -auto-approve'
+ }
+
+}
+```
+
+---
+
+### Terraform Example
+
+```hcl
+resource "aws_instance" "web" {
+
+  ami           = "ami-123456"
+  instance_type = "t2.micro"
+
+}
+```
+
+---
+
+# 9. Security Scanning
+
+## OWASP Dependency Check
+
+```groovy
+stage('Security Scan') {
+
+ steps {
+
+   sh '''
+   dependency-check.sh \
+   --project myapp \
+   --scan .
+   '''
+ }
+}
+```
+
+---
+
+## Trivy Container Scan
+
+```bash
+trivy image myapp:latest
+```
+
+Jenkins:
+
+```groovy
+stage('Container Scan') {
+
+ steps {
+   sh 'trivy image myapp:latest'
+ }
+
+}
+```
+
+---
+
+# 10. Parallel Pipeline Execution
+
+```groovy
+stage('Parallel Tests') {
+
+ parallel {
+
+   stage('Unit Test') {
+      steps {
+         sh 'mvn test'
+      }
+   }
+
+   stage('Security Test') {
+      steps {
+         sh 'trivy image app'
+      }
+   }
+
+ }
+}
+```
+
+---
+
+# 11. Blue-Green Deployment
+
+```text
+Current Traffic
+      |
+      v
+   Blue
+      |
+ Deploy Green
+      |
+ Switch Traffic
+      |
+      v
+    Green
+```
+
+Deployment Script:
+
+```bash
+kubectl apply -f green.yaml
+
+kubectl patch service app \
+-p '{"spec":{"selector":{"version":"green"}}}'
+```
+
+---
+
+# 12. Canary Deployment
+
+```text
+5% Traffic -> New Version
+95% Traffic -> Old Version
+```
+
+Example:
+
+```yaml
+weight: 5
+```
+
+Increase gradually:
+
+```yaml
+weight: 25
+weight: 50
+weight: 100
+```
+
+---
+
+# 13. Rolling Deployment
+
+```bash
+kubectl rollout restart deployment app
+```
+
+Check:
+
+```bash
+kubectl rollout status deployment app
+```
+
+---
+
+# Daily Use Python Scripts
+
+## Health Check API
+
+```python
+import requests
+
+response = requests.get(
+    "https://api.company.com/health"
+)
+
+print(response.status_code)
+```
+
+---
+
+## Upload File to S3
+
+```python
+import boto3
+
+s3 = boto3.client('s3')
+
+s3.upload_file(
+    'app.jar',
+    'my-artifacts',
+    'app.jar'
+)
+```
+
+---
+
+## Read Environment Variable
+
+```python
+import os
+
+env = os.getenv("ENV")
+
+print(env)
+```
+
+---
+
+# Daily Use SQL Queries
+
+## Find Failed Jobs
+
+```sql
+SELECT *
+FROM pipeline_runs
+WHERE status='FAILED';
+```
+
+---
+
+## Last 10 Deployments
+
+```sql
+SELECT *
+FROM deployments
+ORDER BY deployed_at DESC
+LIMIT 10;
+```
+
+---
+
+## Deployment Count
+
+```sql
+SELECT COUNT(*)
+FROM deployments
+WHERE deploy_date=CURRENT_DATE;
+```
+
+---
+
+# Daily Use Bash Commands
+
+## Disk Usage
+
+```bash
+df -h
+```
+
+---
+
+## Memory Usage
+
+```bash
+free -m
+```
+
+---
+
+## Running Processes
+
+```bash
+ps -ef
+```
+
+---
+
+## Kubernetes Pods
+
+```bash
+kubectl get pods -A
+```
+
+---
+
+## Check Logs
+
+```bash
+tail -100 app.log
+```
+
+---
+
+# Daily Use PowerShell Commands
+
+## Running Services
+
+```powershell
+Get-Service
+```
+
+---
+
+## Process List
+
+```powershell
+Get-Process
+```
+
+---
+
+## Disk Space
+
+```powershell
+Get-PSDrive
+```
+
+---
+
+## Read File
+
+```powershell
+Get-Content app.log
+```
+
+---
+
+# Daily Use JavaScript (Node.js)
+
+## Read Environment Variables
+
+```javascript
+console.log(process.env.ENV);
+```
+
+---
+
+## Health Endpoint
+
+```javascript
+app.get('/health', (req,res)=>{
+   res.send("UP");
+});
+```
+
+---
+
+## Read JSON File
+
+```javascript
+const fs = require('fs');
+
+const data = JSON.parse(
+  fs.readFileSync('config.json')
+);
+
+console.log(data);
+```
+
+---
+
+# Complete CI/CD Flow
+
+```text
+Developer Push Code
+        |
+        v
+      Git
+        |
+        v
+     Jenkins
+        |
+  ----------------
+  | Build Maven |
+  | Unit Tests  |
+  | Sonar Scan  |
+  | Security    |
+  ----------------
+        |
+        v
+   Create Artifact
+        |
+        v
+     Upload S3
+        |
+        v
+ Terraform Infra
+        |
+        v
+ Kubernetes Deploy
+        |
+        v
+ Blue/Green or Canary
+        |
+        v
+ Production
+```
+
+### Interview Summary
+
+> Built and managed end-to-end CI/CD pipelines using Jenkins Declarative Pipelines, Maven, SonarQube, Terraform, AWS S3,
+Kubernetes, and security scanning tools. Implemented automated build, test, code quality checks, artifact storage, infrastructure provisioning, 
+and deployment strategies including blue-green, canary, and rolling deployments. Used Python, SQL, Bash, PowerShell, and JavaScript extensively for 
+automation, monitoring, deployment, troubleshooting, and operational tasks.
+
+
+
+
+
+Developer
+   |
+   v
+GitHub
+   |
+   v
+Jenkins Pipeline
+   |
+   +--> Maven Build
+   +--> Unit Tests
+   +--> SonarQube Scan
+   +--> Security Scan
+   +--> Docker Build
+   +--> Push Image
+   |
+   v
+Terraform
+   |
+   +--> VPC
+   +--> EC2
+   +--> RDS
+   +--> EKS
+   +--> IAM
+   |
+   v
+Kubernetes Deployment
+   |
+   v
+Monitoring
+(Prometheus + Grafana + CloudWatch + ELK)
+
+
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = "ap-south-1"
+        IMAGE_NAME = "company-app"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                url: 'https://github.com/company/app.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Unit Test') {
+            steps {
+                sh 'mvn test'
+            }
+        }
+
+        stage('SonarQube') {
+            steps {
+                sh '''
+                mvn sonar:sonar \
+                -Dsonar.projectKey=myapp
+                '''
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t company-app .'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'kubectl apply -f k8s/'
+            }
+        }
+    }
+}
+
+
+node {
+
+    stage('Build') {
+        sh 'mvn clean install'
+    }
+
+    stage('Test') {
+        sh 'mvn test'
+    }
+
+    stage('Deploy') {
+        sh './deploy.sh'
+    }
+}
+
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+
+mvn clean install
+
+mvn sonar:sonar \
+-Dsonar.projectKey=myapp \
+-Dsonar.host.url=http://sonarqube:9000
+
+waitForQualityGate abortPipeline: true
+
+FROM openjdk:17
+
+COPY target/app.jar app.jar
+
+ENTRYPOINT ["java","-jar","app.jar"]
+
+docker build -t app:v1 .
+
+docker run -p 8080:8080 app:v1
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: app
+
+spec:
+  replicas: 3
+
+  selector:
+    matchLabels:
+      app: app
+
+  template:
+    metadata:
+      labels:
+        app: app
+
+    spec:
+      containers:
+      - name: app
+        image: app:v1
+
+kubectl apply -f deployment.yaml
+
+provider "aws" {
+  region = "ap-south-1"
+}
+
+resource "aws_instance" "web" {
+
+  ami           = "ami-xxxxxx"
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "DevOpsServer"
+  }
+}
+
+resource "aws_s3_bucket" "artifacts" {
+
+  bucket = "company-artifacts"
+}
+
+resource "aws_db_instance" "mysql" {
+
+  allocated_storage = 20
+
+  engine = "mysql"
+
+  instance_class = "db.t3.micro"
+
+  username = "admin"
+
+  password = "password123"
+}
+
+resource "aws_iam_user" "jenkins" {
+
+  name = "jenkins-user"
+}
+
+
+aws s3 cp app.jar s3://company-artifacts/
+
+aws s3 ls
+aws ec2 describe-instances
+
+
+
+import boto3
+
+ec2 = boto3.client('ec2')
+
+response = ec2.describe_instances()
+
+print(response)
+
+import boto3
+
+s3 = boto3.client('s3')
+
+s3.upload_file(
+    'app.jar',
+    'company-artifacts',
+    'app.jar'
+)
+
+#!/bin/bash
+
+df -h
+
+free -m
+systemctl status nginx
+
+
+Get-Service
+Get-Process
+Get-PSDrive
+
+
+
+const express = require('express');
+
+const app = express();
+
+app.get('/health',(req,res)=>{
+   res.send("UP");
+});
+
+app.listen(3000);
+
+SELECT *
+FROM deployments
+WHERE status='FAILED';
+
+SELECT COUNT(*)
+FROM deployments;
+
+---
+- hosts: web
+
+  tasks:
+
+  - name: Install nginx
+    yum:
+      name: nginx
+      state: present
+
+ansible-playbook nginx.yml
+
+package 'httpd'
+
+service 'httpd' do
+ action [:enable, :start]
+end
+
+package { 'nginx':
+ ensure => installed,
+}
+
+service { 'nginx':
+ ensure => running,
+}
+
+scrape_configs:
+
+- job_name: 'node'
+
+  static_configs:
+  - targets:
+    - localhost:9100
+
+
+CPU Usage
+Memory Usage
+Disk Usage
+Network Traffic
+HTTP Errors
+Latency
+
+input {
+ file {
+   path => "/var/log/app.log"
+ }
+}
+
+output {
+ elasticsearch {
+   hosts => ["localhost:9200"]
+ }
+}
+
+yum install zabbix-agent
+
+systemctl start zabbix-agent
+
+kubectl apply -f green.yaml
+
+kubectl patch service app \
+-p '{"spec":{"selector":{"version":"green"}}}'
+
+traffic:
+  weight: 10
+
+traffic:
+  weight: 50
+
+kubectl rollout restart deployment app
+
+kubectl rollout status deployment app
+
+| #  | Project Idea                    | Approx Cost (POC/MVP) |
+| -- | ------------------------------- | --------------------- |
+| 1  | CI/CD Platform as a Service     | ₹5–50 lakh            |
+| 2  | Multi-Cloud Deployment Platform | ₹10–100 lakh          |
+| 3  | Kubernetes Cost Optimizer       | ₹5–30 lakh            |
+| 4  | Terraform Automation Portal     | ₹3–25 lakh            |
+| 5  | Cloud Security Scanner          | ₹5–50 lakh            |
+| 6  | AWS Infrastructure Generator    | ₹2–20 lakh            |
+| 7  | Container Vulnerability Scanner | ₹5–40 lakh            |
+| 8  | Self-Healing Infrastructure     | ₹10–75 lakh           |
+| 9  | GitOps Automation Platform      | ₹5–50 lakh            |
+| 10 | Cloud Governance Dashboard      | ₹10–60 lakh           |
+
+
+If by **“800 crore users”** you mean a platform that can serve **8 billion users**, that's larger than the entire world's population and beyond the scale of even companies like Google, Meta, or Amazon.
+
+For projects at that scale, infrastructure costs would be measured in **thousands of crores to lakhs of crores INR per year**, depending on storage, compute, networking, AI workloads, and geographic distribution.
+
+Instead of listing 1,000 individual projects, here is a structured portfolio of **100 DevOps/Cloud/AI project ideas** (10 categories × 10 ideas each). You can expand each category into 10 variants to reach 1,000 projects.
+
+| #  | Project Idea                    | Approx Cost (POC/MVP) |
+| -- | ------------------------------- | --------------------- |
+| 1  | CI/CD Platform as a Service     | ₹5–50 lakh            |
+| 2  | Multi-Cloud Deployment Platform | ₹10–100 lakh          |
+| 3  | Kubernetes Cost Optimizer       | ₹5–30 lakh            |
+| 4  | Terraform Automation Portal     | ₹3–25 lakh            |
+| 5  | Cloud Security Scanner          | ₹5–50 lakh            |
+| 6  | AWS Infrastructure Generator    | ₹2–20 lakh            |
+| 7  | Container Vulnerability Scanner | ₹5–40 lakh            |
+| 8  | Self-Healing Infrastructure     | ₹10–75 lakh           |
+| 9  | GitOps Automation Platform      | ₹5–50 lakh            |
+| 10 | Cloud Governance Dashboard      | ₹10–60 lakh           |
+
+### Monitoring & Observability
+
+11. Datadog Automation Platform
+12. Prometheus SaaS
+13. Grafana Dashboard Generator
+14. Log Analytics Platform
+15. Distributed Tracing Tool
+16. CloudWatch Aggregator
+17. AI Incident Detection
+18. SLA Monitoring System
+19. Site Reliability Dashboard
+20. Predictive Alerting Engine
+
+### DevSecOps
+
+21. Secrets Management Platform
+22. Compliance Automation Tool
+23. Vulnerability Management Portal
+24. Container Security Platform
+25. IAM Audit Solution
+26. Cloud Risk Analyzer
+27. Security Scorecard Dashboard
+28. Automated Penetration Testing
+29. DevSecOps Pipeline Framework
+30. Infrastructure Compliance Scanner
+
+### AI + DevOps
+
+31. AI Log Analyzer
+32. AI Root Cause Analysis
+33. AI Incident Assistant
+34. AI Terraform Generator
+35. AI Kubernetes Advisor
+36. AI Deployment Validator
+37. AI Capacity Planner
+38. AI Cost Optimization Tool
+39. AI Monitoring Assistant
+40. AI Cloud Architect
+
+### AWS Projects
+
+41. Serverless E-Commerce
+42. Lambda Automation Framework
+43. SNS Notification Platform
+44. SQS Event Processing System
+45. Route53 DNS Manager
+46. CloudWatch Dashboard Portal
+47. VPC Automation Toolkit
+48. RDS Backup Platform
+49. S3 Data Lake Solution
+50. Multi-Account AWS Governance
+
+### Kubernetes Projects
+
+51. EKS Deployment Platform
+52. Cluster Monitoring Suite
+53. Pod Auto-Healing Framework
+54. Kubernetes Security Scanner
+55. Helm Deployment Portal
+56. Service Mesh Dashboard
+57. Cluster Cost Analyzer
+58. GitOps EKS Platform
+59. Kubernetes Backup System
+60. Multi-Cluster Manager
+
+### Enterprise Automation
+
+61. Employee Management System
+62. Payroll Automation Platform
+63. IT Asset Tracking System
+64. Service Desk Automation
+65. Enterprise Workflow Engine
+66. Document Management System
+67. Approval Automation Portal
+68. HR Analytics Dashboard
+69. Enterprise Reporting System
+70. Procurement Automation
+
+### Data Engineering
+
+71. Data Lake Platform
+72. ETL Automation Framework
+73. Streaming Analytics System
+74. Real-Time Data Pipeline
+75. Data Quality Dashboard
+76. Data Governance Platform
+77. SQL Performance Analyzer
+78. BI Reporting Solution
+79. Metadata Management Tool
+80. Data Catalog Platform
+
+### FinTech
+
+81. Digital Banking Platform
+82. Payment Gateway System
+83. Fraud Detection Engine
+84. Loan Processing Platform
+85. Credit Risk Analyzer
+86. Financial Analytics Portal
+87. Investment Dashboard
+88. Insurance Claims Platform
+89. Tax Automation System
+90. Blockchain Payment Network
+
+### Large-Scale Consumer Apps
+
+91. Social Media Platform
+92. Video Streaming Platform
+93. Music Streaming Service
+94. Online Learning Platform
+95. Ride Sharing Platform
+96. Food Delivery Platform
+97. Global Messaging App
+98. Gaming Platform
+99. AI Search Engine
+100. Global E-Commerce Marketplace
+
+### Rough Infrastructure Costs
+
+| Users      | Monthly Infra Cost |
+| ---------- | ------------------ |
+| 10,000     | ₹20,000 – ₹2 lakh  |
+| 1 lakh     | ₹1–10 lakh         |
+| 10 lakh    | ₹10–100 lakh       |
+| 1 crore    | ₹1–20 crore        |
+| 10 crore   | ₹20–500 crore      |
+| 100+ crore | ₹500 crore+        |
+
+
+
+A real-world **Log Analytics Platform** in DevOps typically uses:
+
+* **Python** → log parsing, ETL, alerting, automation
+* **SQL** → querying logs and analytics
+* **Bash** → Linux log management
+* **PowerShell** → Windows log management
+* **JavaScript/Node.js** → APIs, dashboards, log ingestion
+
+# Python (Log Analytics)
+
+## 1. Read Log File
+
+```python
+with open("/var/log/app.log") as f:
+    for line in f:
+        print(line.strip())
+```
+
+## 2. Count ERROR Logs
+
+```python
+count = 0
+
+with open("app.log") as f:
+    for line in f:
+        if "ERROR" in line:
+            count += 1
+
+print(count)
+```
+
+## 3. Extract IP Addresses
+
+```python
+import re
+
+with open("access.log") as f:
+    for line in f:
+        ips = re.findall(
+            r"\d+\.\d+\.\d+\.\d+",
+            line
+        )
+
+        for ip in ips:
+            print(ip)
+```
+
+## 4. Send Alert
+
+```python
+import smtplib
+
+server = smtplib.SMTP(
+    "smtp.company.com"
+)
+
+server.sendmail(
+    "monitor@company.com",
+    "team@company.com",
+    "High Error Rate"
+)
+```
+
+## 5. JSON Log Parsing
+
+```python
+import json
+
+log = '{"level":"ERROR","msg":"db failed"}'
+
+data = json.loads(log)
+
+print(data["level"])
+```
+
+---
+
+# SQL (Log Analysis)
+
+## 6. Top Errors
+
+```sql
+SELECT error_message,
+       COUNT(*)
+FROM logs
+GROUP BY error_message
+ORDER BY COUNT(*) DESC;
+```
+
+## 7. Failed Requests
+
+```sql
+SELECT *
+FROM logs
+WHERE status='FAILED';
+```
+
+## 8. Last 1 Hour Errors
+
+```sql
+SELECT *
+FROM logs
+WHERE created_at >
+NOW() - INTERVAL '1 hour';
+```
+
+## 9. Error Trend
+
+```sql
+SELECT DATE(created_at),
+       COUNT(*)
+FROM logs
+GROUP BY DATE(created_at);
+```
+
+## 10. Top Users
+
+```sql
+SELECT user_id,
+       COUNT(*)
+FROM logs
+GROUP BY user_id;
+```
+
+---
+
+# Bash (Linux Log Operations)
+
+## 11. Tail Logs
+
+```bash
+tail -f /var/log/app.log
+```
+
+## 12. Find Errors
+
+```bash
+grep ERROR app.log
+```
+
+## 13. Count Errors
+
+```bash
+grep ERROR app.log | wc -l
+```
+
+## 14. Last 100 Lines
+
+```bash
+tail -100 app.log
+```
+
+## 15. Monitor Continuously
+
+```bash
+watch "tail -20 app.log"
+```
+
+---
+
+# PowerShell (Windows Logs)
+
+## 16. Read Event Logs
+
+```powershell
+Get-EventLog -LogName System
+```
+
+## 17. Failed Events
+
+```powershell
+Get-EventLog `
+-LogName System `
+-EntryType Error
+```
+
+## 18. Export Logs
+
+```powershell
+Get-EventLog System |
+Export-Csv logs.csv
+```
+
+## 19. Service Logs
+
+```powershell
+Get-Service
+```
+
+## 20. Last 50 Events
+
+```powershell
+Get-EventLog `
+-LogName Application `
+-Newest 50
+```
+
+---
+
+# JavaScript / Node.js
+
+## 21. Read Log File
+
+```javascript
+const fs = require("fs");
+
+const data =
+fs.readFileSync("app.log","utf8");
+
+console.log(data);
+```
+
+## 22. Create Log Entry
+
+```javascript
+const fs = require("fs");
+
+fs.appendFileSync(
+  "app.log",
+  "INFO App Started\n"
+);
+```
+
+## 23. Express Logging Middleware
+
+```javascript
+app.use((req,res,next)=>{
+
+ console.log(
+   req.method,
+   req.url
+ );
+
+ next();
+
+});
+```
+
+## 24. Error Logging
+
+```javascript
+try {
+
+ throw new Error("Failure");
+
+}
+catch(err){
+
+ console.error(err);
+
+}
+```
+
+## 25. JSON Log
+
+```javascript
+console.log(
+ JSON.stringify({
+   level:"INFO",
+   msg:"Login Success"
+ })
+);
+```
+
+---
+
+# Common DevOps Log Analytics Architecture
+
+```text
+Application Logs
+       |
+       v
+ Fluentd/Filebeat
+       |
+       v
+ Elasticsearch
+       |
+       v
+ Kibana Dashboard
+       |
+       v
+ Alerts
+       |
+       +--> Email
+       +--> Slack
+       +--> Teams
+```
+
+### Most Common Industry Tasks
+
+1. Log ingestion
+2. Error detection
+3. Pattern matching
+4. Alert generation
+5. Dashboard visualization
+6. Security audit logs
+7. API request tracing
+8. Application monitoring
+9. Infrastructure troubleshooting
+10. Compliance reporting
+
+
+Below is a practical **Terraform + AWS DevOps project reference** covering the topics you listed, with Terraform examples and supporting 
+**Python, SQL, Bash, PowerShell, and JavaScript** automation commonly used around Terraform deployments.
+
+# 1. Terraform Fundamentals
+
+## Provider Configuration
+
+```hcl
+terraform {
+  required_version = ">= 1.6.0"
+}
+
+provider "aws" {
+  region = "ap-south-1"
+}
+```
+
+---
+
+## Create EC2 Instance
+
+```hcl
+resource "aws_instance" "web" {
+
+  ami           = "ami-0f58b397bc5c1f2e8"
+  instance_type = "t3.micro"
+
+  tags = {
+    Name = "web-server"
+  }
+}
+```
+
+Deploy:
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+---
+
+# 2. Terraform State Management
+
+## Remote State (S3)
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-prod"
+    key    = "prod/terraform.tfstate"
+    region = "ap-south-1"
+  }
+}
+```
+
+---
+
+## State Locking (DynamoDB)
+
+```hcl
+terraform {
+  backend "s3" {
+
+    bucket         = "terraform-state-prod"
+    key            = "prod/state.tfstate"
+    region         = "ap-south-1"
+    dynamodb_table = "terraform-locks"
+
+  }
+}
+```
+
+Benefits:
+
+* Team collaboration
+* Prevent concurrent changes
+* Centralized state
+
+---
+
+# 3. Terraform Variables
+
+## variables.tf
+
+```hcl
+variable "instance_type" {
+
+  type = string
+
+  default = "t3.micro"
+
+}
+```
+
+---
+
+## Validation
+
+```hcl
+variable "environment" {
+
+  type = string
+
+  validation {
+
+    condition = contains(
+      ["dev","stage","prod"],
+      var.environment
+    )
+
+    error_message = "Invalid environment"
+
+  }
+}
+```
+
+---
+
+## Output Variables
+
+```hcl
+output "instance_ip" {
+
+  value = aws_instance.web.public_ip
+
+}
+```
+
+---
+
+# 4. Terraform Modules
+
+## Root Module
+
+```hcl
+module "ec2" {
+
+  source = "./modules/ec2"
+
+  instance_type = "t3.micro"
+
+}
+```
+
+---
+
+## modules/ec2/main.tf
+
+```hcl
+resource "aws_instance" "server" {
+
+  ami = var.ami
+
+  instance_type = var.instance_type
+
+}
+```
+
+---
+
+## modules/ec2/variables.tf
+
+```hcl
+variable "ami" {}
+
+variable "instance_type" {}
+```
+
+---
+
+# 5. Terraform Workspaces
+
+Create:
+
+```bash
+terraform workspace new dev
+terraform workspace new stage
+terraform workspace new prod
+```
+
+Switch:
+
+```bash
+terraform workspace select prod
+```
+
+Current:
+
+```bash
+terraform workspace show
+```
+
+Usage:
+
+```hcl
+resource "aws_s3_bucket" "logs" {
+
+  bucket = "company-${terraform.workspace}-logs"
+
+}
+```
+
+---
+
+# 6. Terraform Provisioners
+
+## Local Provisioner
+
+```hcl
+resource "aws_instance" "web" {
+
+  ami = "ami-123"
+
+  instance_type = "t2.micro"
+
+  provisioner "local-exec" {
+
+    command = "echo Server Created"
+
+  }
+}
+```
+
+---
+
+## Remote Provisioner
+
+```hcl
+provisioner "remote-exec" {
+
+ inline = [
+
+   "sudo yum update -y",
+   "sudo yum install nginx -y"
+
+ ]
+
+}
+```
+
+---
+
+## File Provisioner
+
+```hcl
+provisioner "file" {
+
+ source      = "app.conf"
+
+ destination = "/tmp/app.conf"
+
+}
+```
+
+---
+
+# 7. Multi-Environment Deployment
+
+Directory Structure
+
+```text
+terraform/
+├── dev
+├── stage
+├── prod
+├── modules
+```
+
+Example:
+
+```hcl
+variable "instance_count" {
+
+ default = 1
+
+}
+```
+
+Prod:
+
+```hcl
+variable "instance_count" {
+
+ default = 5
+
+}
+```
+
+---
+
+# 8. AWS VPC Provisioning
+
+```hcl
+resource "aws_vpc" "main" {
+
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "main-vpc"
+  }
+}
+```
+
+---
+
+# Subnet
+
+```hcl
+resource "aws_subnet" "public" {
+
+  vpc_id = aws_vpc.main.id
+
+  cidr_block = "10.0.1.0/24"
+
+}
+```
+
+---
+
+# Internet Gateway
+
+```hcl
+resource "aws_internet_gateway" "igw" {
+
+  vpc_id = aws_vpc.main.id
+
+}
+```
+
+---
+
+# 9. AWS EC2 Provisioning
+
+```hcl
+resource "aws_instance" "app" {
+
+  ami = "ami-123"
+
+  instance_type = "t3.medium"
+
+}
+```
+
+---
+
+# Security Group
+
+```hcl
+resource "aws_security_group" "web" {
+
+ ingress {
+
+   from_port   = 80
+   to_port     = 80
+   protocol    = "tcp"
+   cidr_blocks = ["0.0.0.0/0"]
+
+ }
+
+}
+```
+
+---
+
+# 10. AWS RDS Provisioning
+
+```hcl
+resource "aws_db_instance" "mysql" {
+
+ allocated_storage = 20
+
+ engine = "mysql"
+
+ instance_class = "db.t3.micro"
+
+ username = "admin"
+
+ password = "password123"
+
+ skip_final_snapshot = true
+
+}
+```
+
+---
+
+# 11. EKS Cluster Provisioning
+
+```hcl
+module "eks" {
+
+ source = "terraform-aws-modules/eks/aws"
+
+ cluster_name = "dev-cluster"
+
+ cluster_version = "1.30"
+
+}
+```
+
+Deploy:
+
+```bash
+terraform apply
+```
+
+Configure kubectl:
+
+```bash
+aws eks update-kubeconfig \
+--region ap-south-1 \
+--name dev-cluster
+```
+
+---
+
+# Python Automation
+
+## Run Terraform
+
+```python
+import subprocess
+
+subprocess.run(
+  ["terraform","apply","-auto-approve"]
+)
+```
+
+---
+
+## Read Terraform Output
+
+```python
+import json
+import subprocess
+
+output = subprocess.check_output(
+   ["terraform","output","-json"]
+)
+
+data = json.loads(output)
+
+print(data)
+```
+
+---
+
+## EC2 Validation
+
+```python
+import boto3
+
+ec2 = boto3.client("ec2")
+
+print(
+  ec2.describe_instances()
+)
+```
+
+---
+
+# SQL Examples
+
+Infrastructure Inventory
+
+```sql
+CREATE TABLE servers (
+
+ id INT,
+ hostname VARCHAR(100),
+ environment VARCHAR(20)
+
+);
+```
+
+---
+
+List Production Servers
+
+```sql
+SELECT *
+FROM servers
+WHERE environment='prod';
+```
+
+---
+
+Deployment Audit
+
+```sql
+SELECT *
+FROM deployment_history
+ORDER BY deployed_at DESC;
+```
+
+---
+
+# Bash Scripts
+
+## Terraform Apply
+
+```bash
+#!/bin/bash
+
+terraform init
+
+terraform validate
+
+terraform plan
+
+terraform apply -auto-approve
+```
+
+---
+
+## Destroy Environment
+
+```bash
+terraform destroy -auto-approve
+```
+
+---
+
+## Workspace Switch
+
+```bash
+terraform workspace select prod
+```
+
+---
+
+# PowerShell
+
+## Terraform Apply
+
+```powershell
+terraform init
+
+terraform validate
+
+terraform apply -auto-approve
+```
+
+---
+
+## Select Workspace
+
+```powershell
+terraform workspace select dev
+```
+
+---
+
+## Show Outputs
+
+```powershell
+terraform output
+```
+
+---
+
+# JavaScript (Node.js)
+
+## Execute Terraform
+
+```javascript
+const { exec } = require('child_process');
+
+exec(
+  'terraform apply -auto-approve',
+  (err, stdout) => {
+    console.log(stdout);
+  }
+);
+```
+
+---
+
+## Read Terraform Output
+
+```javascript
+const { exec } = require('child_process');
+
+exec(
+  'terraform output -json',
+  (err, stdout) => {
+    console.log(stdout);
+  }
+);
+```
+
+---
+
+# Production Terraform Best Practices
+
+### Structure
+
+```text
+terraform/
+├── modules/
+├── environments/
+│   ├── dev
+│   ├── stage
+│   └── prod
+├── backend.tf
+├── providers.tf
+├── variables.tf
+├── outputs.tf
+```
+
+### Security
+
+* Store state remotely in S3.
+* Enable state locking with DynamoDB.
+* Never hardcode secrets.
+* Use IAM roles.
+* Encrypt S3 state buckets.
+* Use separate AWS accounts for dev/stage/prod.
+
+### Optimization
+
+* Reusable modules
+* Workspaces
+* CI/CD integration with Jenkins
+* Automated validation
+* Automated security scanning
+
+# End-to-End Terraform CI/CD Flow
+
+```text
+Developer
+   |
+GitHub
+   |
+Jenkins
+   |
+Terraform Validate
+   |
+Terraform Plan
+   |
+Terraform Apply
+   |
+AWS
+ ├─ VPC
+ ├─ EC2
+ ├─ RDS
+ ├─ EKS
+ └─ IAM
+   |
+Monitoring
+(CloudWatch/Prometheus/Grafana)
+```
+
+### Interview Summary
+
+> Experienced in Infrastructure as Code using Terraform for AWS resource provisioning including VPC, EC2, RDS, IAM, and EKS. 
+Implemented reusable modules, remote state management with S3 and DynamoDB, workspace-based environment isolation, multi-environment deployments, and 
+CI/CD integration with Jenkins. Automated infrastructure provisioning and validation using Python, Bash, PowerShell, SQL, 
+and JavaScript while following Terraform security and operational best practices.
+
+# AWS Core Services Explained (English + Hinglish)
+
+---
+
+# 1. Amazon EC2 (Elastic Compute Cloud)
+
+## English
+
+EC2 provides virtual servers in the cloud. You can launch Linux or Windows servers, install applications, and scale as needed.
+
+Common Tasks:
+
+* Launch instances
+* Create AMIs
+* Configure Security Groups
+* Monitor using CloudWatch
+
+Example AWS CLI:
+
+```bash
+aws ec2 describe-instances
+```
+
+---
+
+## Hinglish
+
+EC2 AWS ka virtual server hai.
+
+Aap:
+
+* Linux server launch kar sakte ho
+* Windows server launch kar sakte ho
+* Applications host kar sakte ho
+* Scale up/down kar sakte ho
+
+Example:
+Agar website host karni hai to EC2 instance create karte hain aur usme Nginx ya Apache install karte hain.
+
+---
+
+# 2. Amazon VPC (Virtual Private Cloud)
+
+## English
+
+VPC provides an isolated network inside AWS.
+
+Components:
+
+* VPC
+* Subnets
+* Route Tables
+* Internet Gateway
+* NAT Gateway
+* Security Groups
+
+Architecture:
+
+```text
+VPC
+ |
+ +-- Public Subnet
+ |
+ +-- Private Subnet
+```
+
+---
+
+## Hinglish
+
+VPC AWS ka private network hai.
+
+Jaise company ke office ka network hota hai waise hi AWS me VPC hota hai.
+
+Public Subnet:
+
+* Internet access
+
+Private Subnet:
+
+* No direct internet access
+
+---
+
+# 3. Amazon S3
+
+## English
+
+S3 is object storage used for:
+
+* Images
+* Videos
+* Backups
+* Static websites
+
+Features:
+
+* Versioning
+* Lifecycle Policies
+* Encryption
+
+Upload File:
+
+```bash
+aws s3 cp file.txt s3://mybucket
+```
+
+---
+
+## Hinglish
+
+S3 AWS ka storage service hai.
+
+Store kar sakte hain:
+
+* Images
+* Videos
+* Backups
+* Logs
+
+Example:
+Website ke images S3 me rakh sakte hain.
+
+---
+
+# 4. Amazon EBS
+
+## English
+
+EBS provides block storage attached to EC2.
+
+Features:
+
+* SSD Volumes
+* Snapshots
+* Backup
+
+Snapshot:
+
+```bash
+aws ec2 create-snapshot \
+--volume-id vol-12345
+```
+
+---
+
+## Hinglish
+
+EBS EC2 server ki hard disk hai.
+
+Agar server delete ho jaye to snapshot se recover kar sakte hain.
+
+---
+
+# 5. Amazon EFS
+
+## English
+
+Elastic File System is shared storage.
+
+Multiple EC2 servers can access the same files.
+
+Use Cases:
+
+* Shared uploads
+* Kubernetes storage
+* CMS applications
+
+---
+
+## Hinglish
+
+EFS ek shared network drive hai.
+
+Multiple EC2 servers same files access kar sakte hain.
+
+---
+
+# 6. Load Balancer
+
+## Application Load Balancer (ALB)
+
+### English
+
+Routes HTTP/HTTPS traffic.
+
+```text
+Users
+  |
+ ALB
+  |
+EC2 Instances
+```
+
+---
+
+### Hinglish
+
+ALB traffic ko multiple servers me distribute karta hai.
+
+Agar ek server down ho jaye to request dusre server par jayegi.
+
+---
+
+## Network Load Balancer (NLB)
+
+### English
+
+Handles TCP/UDP traffic with very high performance.
+
+### Hinglish
+
+High-performance traffic ke liye use hota hai.
+
+Gaming aur financial systems me common hai.
+
+---
+
+# 7. Auto Scaling
+
+## English
+
+Automatically adds/removes servers based on load.
+
+Example:
+
+```text
+CPU > 80%
+Add 2 EC2 Instances
+```
+
+---
+
+## Hinglish
+
+Traffic badhe to naye servers automatically create ho jate hain.
+
+Traffic kam ho to servers delete ho jate hain.
+
+---
+
+# 8. Amazon RDS
+
+## English
+
+Managed database service.
+
+Supports:
+
+* MySQL
+* PostgreSQL
+* MariaDB
+* SQL Server
+
+Backup:
+
+```text
+Automatic Daily Backup
+```
+
+---
+
+## Hinglish
+
+AWS database manage karta hai.
+
+Hume:
+
+* Patch nahi lagana
+* Backup manually nahi lena
+
+---
+
+# 9. Amazon CloudWatch
+
+## English
+
+Monitoring service.
+
+Tracks:
+
+* CPU
+* Memory
+* Disk
+* Logs
+
+Alarm Example:
+
+```text
+CPU > 80%
+Send Email
+```
+
+---
+
+## Hinglish
+
+CloudWatch AWS ka monitoring tool hai.
+
+Server ki health monitor karta hai.
+
+---
+
+# 10. AWS CLI
+
+## English
+
+Command-line interface for AWS.
+
+List Buckets:
+
+```bash
+aws s3 ls
+```
+
+---
+
+## Hinglish
+
+AWS ko terminal se manage karne ke liye use hota hai.
+
+---
+
+# 11. Route 53
+
+## English
+
+DNS service.
+
+Example:
+
+```text
+example.com
+     |
+     v
+ ALB
+```
+
+Routing Policies:
+
+* Simple
+* Weighted
+* Latency
+* Failover
+
+---
+
+## Hinglish
+
+Route53 domain ko AWS resources se connect karta hai.
+
+---
+
+# 12. CloudFront
+
+## English
+
+CDN service.
+
+Caches content at edge locations.
+
+Benefits:
+
+* Faster website
+* Reduced latency
+
+---
+
+## Hinglish
+
+CloudFront images aur static files ko user ke nearest location se serve karta hai.
+
+---
+
+# 13. AWS Lambda
+
+## English
+
+Serverless service.
+
+Run code without managing servers.
+
+Example:
+
+```python
+def lambda_handler(event, context):
+    return {
+      "statusCode": 200
+    }
+```
+
+---
+
+## Hinglish
+
+Server manage nahi karna padta.
+
+Sirf code upload karo aur Lambda execute karega.
+
+---
+
+# 14. IAM (Identity and Access Management)
+
+## English
+
+Controls permissions.
+
+Components:
+
+* Users
+* Groups
+* Roles
+* Policies
+
+Example Policy:
+
+```json
+{
+ "Effect":"Allow",
+ "Action":"s3:*",
+ "Resource":"*"
+}
+```
+
+---
+
+## Hinglish
+
+IAM decide karta hai kaun kya access kar sakta hai.
+
+Example:
+Developer ko EC2 access mile.
+Finance team ko na mile.
+
+---
+
+# Hands-On Project
+
+### Highly Available Web Application
+
+Architecture:
+
+```text
+Route53
+   |
+CloudFront
+   |
+ALB
+   |
+Auto Scaling Group
+   |
+EC2 Instances
+   |
+RDS
+   |
+S3
+```
+
+Features:
+
+* Auto Scaling
+* Load Balancing
+* Monitoring
+* Backup
+* High Availability
+
+---
+
+# Top 30 AWS Interview Questions
+
+### EC2
+
+1. What is EC2?
+2. Difference between On-Demand and Spot Instances?
+3. What is an AMI?
+4. What are Security Groups?
+5. Difference between Security Groups and NACLs?
+
+### VPC
+
+6. What is a VPC?
+7. Difference between Public and Private Subnet?
+8. What is an Internet Gateway?
+9. What is a NAT Gateway?
+10. What is CIDR?
+
+### S3
+
+11. What is S3?
+12. What is Versioning?
+13. What are Lifecycle Policies?
+14. Difference between S3 Standard and Glacier?
+15. How do you host a static website on S3?
+
+### EBS/EFS
+
+16. Difference between EBS and EFS?
+17. What is an EBS Snapshot?
+18. Can EBS be attached to multiple instances?
+
+### Load Balancer & Auto Scaling
+
+19. What is ALB?
+20. What is NLB?
+21. What is Auto Scaling?
+22. What scaling policies are available?
+
+### RDS
+
+23. What is RDS?
+24. Difference between RDS and EC2-hosted database?
+25. What is Multi-AZ?
+
+### Monitoring
+
+26. What is CloudWatch?
+27. What are CloudWatch Alarms?
+
+### IAM
+
+28. Difference between IAM User and Role?
+29. What is the Principle of Least Privilege?
+
+### Serverless
+
+30. What is AWS Lambda and when would you use it?
+
+### Interview Answer Summary
+
+> I have hands-on experience with AWS core services including EC2, VPC, S3, 
+EBS, EFS, ALB, Auto Scaling, RDS, CloudWatch, Route 53, CloudFront, Lambda, and IAM. 
+I have designed highly available and scalable architectures, implemented monitoring and alerting, automated infrastructure using
+AWS CLI and Terraform, configured security controls, managed backups and disaster recovery, and deployed production workloads following 
+AWS best practices.
+
+
+
+
+
+
+
